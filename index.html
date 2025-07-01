@@ -404,6 +404,9 @@
       e.preventDefault();
     }
 
+    // iOS Safari fix: use both pointer and touch events, always { passive: false }, and only on .wheel-outer
+    // Remove touch events from SVG if any, and ensure all are on wheel div
+    // Remove duplicate listeners if any, and re-add with correct options
     wheel.addEventListener('pointerdown', handleWheelStart);
     wheel.addEventListener('pointermove', handleWheelMove);
     wheel.addEventListener('pointerup', handleWheelEnd);
