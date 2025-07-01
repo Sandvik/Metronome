@@ -38,6 +38,10 @@
       transform: translate(-50%, -50%);
       z-index: 2;
       pointer-events: auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     .wheel-label {
       position: absolute;
@@ -52,6 +56,13 @@
     .bpm-controls {
       display: flex;
       align-items: center;
+      margin-bottom: 1.5rem;
+      justify-content: center;
+    }
+    .dropdown-row {
+      display: flex;
+      justify-content: center;
+      width: 100%;
       margin-bottom: 1.5rem;
     }
     .bpm-btn {
@@ -99,6 +110,9 @@
       pointer-events: none;
       /* visually above background, below controls */
     }
+    .bpm-btn, .bpm-display, #soundSelect, .start-stop-btn, label {
+      pointer-events: auto;
+    }
   </style>
 </head>
 <body>
@@ -112,18 +126,20 @@
         <span class="bpm-display" id="bpm">50</span>
         <button class="bpm-btn" id="plus">+</button>
       </div>
-      <label for="soundSelect" style="margin-bottom:1rem; font-size:1.1rem;">Sound:
-        <select id="soundSelect" style="margin-left:0.5rem; font-size:1rem;">
-          <option value="high">High Click</option>
-          <option value="low">Low Click</option>
-          <option value="beep">Beep</option>
-          <option value="wood">Woodblock</option>
-          <option value="tick">Electronic Tick</option>
-          <option value="tnt">TNT Boom</option>
-          <option value="snare">Rock Snare</option>
-          <option value="guitar">Guitar Chord</option>
-        </select>
-      </label>
+      <div class="dropdown-row">
+        <label for="soundSelect" style="font-size:1.1rem;">Sound:
+          <select id="soundSelect" style="margin-left:0.5rem; font-size:1rem;">
+            <option value="high">High Click</option>
+            <option value="low">Low Click</option>
+            <option value="beep">Beep</option>
+            <option value="wood">Woodblock</option>
+            <option value="tick">Electronic Tick</option>
+            <option value="tnt">TNT Boom</option>
+            <option value="snare">Rock Snare</option>
+            <option value="guitar">Guitar Chord</option>
+          </select>
+        </label>
+      </div>
       <button class="start-stop-btn" id="startStop">
         <span id="startStopIcon">
           <svg width="28" height="28" viewBox="0 0 28 28" style="vertical-align:middle;">
@@ -333,18 +349,22 @@
       return Math.atan2(ey - cy, ex - cx) * 180 / Math.PI;
     }
 
+    // Helper to check if event target is the wheel background (not controls)
+    function isOnWheelBackground(target) {
+      return target === wheel;
+    }
     // Helper to check if event target is inside .container
     function isInContainer(target) {
       return document.querySelector('.container').contains(target);
     }
 
     function handleWheelStart(e) {
-      // Ignore if pointer/touch starts on a control inside .container
+      // Only activate wheel if event starts on wheel background
       let target = e.target;
       if (e.touches && e.touches.length > 0) {
         target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
       }
-      if (isInContainer(target)) {
+      if (!isOnWheelBackground(target)) {
         wheelActive = false;
         return;
       }
@@ -361,7 +381,8 @@
         y = e.clientY;
       }
       lastAngle = getAngle(cx, cy, x, y);
-      e.preventDefault();
+      // Only preventDefault if handling wheel
+      if (e.cancelable) e.preventDefault();
     }
 
     function handleWheelMove(e) {
@@ -395,13 +416,15 @@
         }
         lastAngle = angle;
       }
-      e.preventDefault();
+      // Only preventDefault if handling wheel
+      if (e.cancelable) e.preventDefault();
     }
 
     function handleWheelEnd(e) {
       wheelActive = false;
       lastAngle = null;
-      e.preventDefault();
+      // Only preventDefault if handling wheel
+      if (e.cancelable) e.preventDefault();
     }
 
     // iOS Safari fix: use both pointer and touch events, always { passive: false }, and only on .wheel-outer
