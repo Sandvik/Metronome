@@ -37,6 +37,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       z-index: 2;
+      pointer-events: auto;
     }
     .wheel-label {
       position: absolute;
@@ -118,6 +119,9 @@
           <option value="beep">Beep</option>
           <option value="wood">Woodblock</option>
           <option value="tick">Electronic Tick</option>
+          <option value="tnt">TNT Boom</option>
+          <option value="snare">Rock Snare</option>
+          <option value="guitar">Guitar Chord</option>
         </select>
       </label>
       <button class="start-stop-btn" id="startStop">
@@ -183,7 +187,6 @@
           osc.stop(now + 0.09);
           break;
         case 'wood':
-          // Simulate woodblock: short, percussive, mid freq
           osc.type = 'triangle';
           osc.frequency.value = 600;
           gain.gain.setValueAtTime(0.7, now);
@@ -192,13 +195,60 @@
           osc.stop(now + 0.05);
           break;
         case 'tick':
-          // Electronic tick: very short, high freq
           osc.type = 'square';
           osc.frequency.value = 2000;
           gain.gain.setValueAtTime(0.5, now);
           gain.gain.linearRampToValueAtTime(0, now + 0.025);
           osc.start(now);
           osc.stop(now + 0.03);
+          break;
+        case 'tnt':
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(120, now);
+          osc.frequency.linearRampToValueAtTime(40, now + 0.18);
+          gain.gain.setValueAtTime(1, now);
+          gain.gain.linearRampToValueAtTime(0, now + 0.18);
+          osc.start(now);
+          osc.stop(now + 0.18);
+          break;
+        case 'snare':
+          let bufferSize = audioCtx.sampleRate * 0.08;
+          let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          let data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+          let noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+          let snareGain = audioCtx.createGain();
+          snareGain.gain.setValueAtTime(0.7, now);
+          snareGain.gain.linearRampToValueAtTime(0, now + 0.08);
+          noise.connect(snareGain).connect(audioCtx.destination);
+          noise.start(now);
+          noise.stop(now + 0.08);
+          osc.type = 'triangle';
+          osc.frequency.value = 1800;
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0, now + 0.03);
+          osc.start(now);
+          osc.stop(now + 0.03);
+          break;
+        case 'guitar':
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(330, now);
+          gain.gain.setValueAtTime(0.7, now);
+          gain.gain.linearRampToValueAtTime(0, now + 0.18);
+          osc.start(now);
+          osc.stop(now + 0.18);
+          let osc2 = audioCtx.createOscillator();
+          let gain2 = audioCtx.createGain();
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(440, now);
+          gain2.gain.setValueAtTime(0.5, now);
+          gain2.gain.linearRampToValueAtTime(0, now + 0.18);
+          osc2.connect(gain2).connect(audioCtx.destination);
+          osc2.start(now);
+          osc2.stop(now + 0.18);
           break;
         default:
           osc.type = 'square';
@@ -283,7 +333,21 @@
       return Math.atan2(ey - cy, ex - cx) * 180 / Math.PI;
     }
 
+    // Helper to check if event target is inside .container
+    function isInContainer(target) {
+      return document.querySelector('.container').contains(target);
+    }
+
     function handleWheelStart(e) {
+      // Ignore if pointer/touch starts on a control inside .container
+      let target = e.target;
+      if (e.touches && e.touches.length > 0) {
+        target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+      }
+      if (isInContainer(target)) {
+        wheelActive = false;
+        return;
+      }
       wheelActive = true;
       const rect = wheel.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
