@@ -2,9 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- Makes the page responsive on all devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Metronome</title>
   <style>
+    /* Main dark background and centering for the app */
     body {
       font-family: Arial, sans-serif;
       background: #222;
@@ -16,6 +18,7 @@
       height: 100vh;
       margin: 0;
     }
+    /* (Legacy) wheel-outer: not used, but kept for reference */
     .wheel-outer {
       position: relative;
       width: 400px;
@@ -31,6 +34,7 @@
       user-select: none;
       touch-action: none;
     }
+    /* Main container for all controls */
     .container {
       position: absolute;
       top: 50%;
@@ -43,6 +47,7 @@
       flex-direction: column;
       align-items: center;
     }
+    /* (Legacy) wheel-label: not used, but kept for reference */
     .wheel-label {
       position: absolute;
       bottom: 20px;
@@ -53,18 +58,21 @@
       z-index: 1;
       pointer-events: none;
     }
+    /* Row for the +, BPM number, and - buttons */
     .bpm-controls {
       display: flex;
       align-items: center;
       margin-bottom: 1.5rem;
       justify-content: center;
     }
+    /* Row for the dropdown */
     .dropdown-row {
       display: flex;
       justify-content: center;
       width: 100%;
       margin-bottom: 1.25rem;
     }
+    /* Style for the + and - buttons */
     .bpm-btn {
       font-size: 2rem;
       width: 2.5rem;
@@ -80,11 +88,13 @@
     .bpm-btn:hover {
       background: #666;
     }
+    /* The BPM number display */
     .bpm-display {
       font-size: 2.5rem;
       min-width: 4rem;
       text-align: center;
     }
+    /* The play/stop button */
     .start-stop-btn {
       font-size: 1.5rem;
       padding: 0.5rem 2rem;
@@ -100,19 +110,23 @@
     .start-stop-btn.active {
       background: #e74c3c;
     }
+    /* Touch and selection tweaks for mobile */
     html, body {
       touch-action: manipulation;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
     }
+    /* (Legacy) wheel-arc: not used, but kept for reference */
     .wheel-arc {
       pointer-events: none;
       /* visually above background, below controls */
     }
+    /* Make sure all controls are clickable */
     .bpm-btn, .bpm-display, #soundSelect, .start-stop-btn, label {
       pointer-events: auto;
     }
+    /* The horizontal swipe bar for changing BPM */
     .swipe-bar {
       margin: 1.25rem auto 0 auto;
       width: 90vw;
@@ -133,6 +147,7 @@
       position: relative;
       overflow: hidden;
     }
+    /* Left and right arrow icons in the swipe bar */
     .swipe-arrow {
       font-size: 1.6rem;
       opacity: 0.7;
@@ -141,6 +156,7 @@
       pointer-events: none;
       user-select: none;
     }
+    /* Instruction text in the swipe bar */
     .swipe-instruction {
       flex: 1;
       text-align: center;
@@ -150,6 +166,7 @@
       pointer-events: none;
       user-select: none;
     }
+    /* Progress bar background in the swipe bar */
     .swipe-progress-bg {
       position: absolute;
       left: 0; top: 0; right: 0; bottom: 0;
@@ -158,6 +175,7 @@
       z-index: 1;
       overflow: hidden;
     }
+    /* Progress bar fill in the swipe bar */
     .swipe-progress-fill {
       position: absolute;
       left: 0; top: 0; bottom: 0;
@@ -167,6 +185,7 @@
       transition: width 0.15s cubic-bezier(.4,1.3,.6,1);
       z-index: 1;
     }
+    /* Make dropdown text black for readability */
     #soundSelect {
       font-size:1rem;
       color: #111;
@@ -175,12 +194,15 @@
   </style>
 </head>
 <body>
+  <!-- Main container for all controls -->
   <div class="container">
+    <!-- BPM controls: minus, BPM number, plus -->
     <div class="bpm-controls">
       <button class="bpm-btn" id="minus">-</button>
       <span class="bpm-display" id="bpm">50</span>
       <button class="bpm-btn" id="plus">+</button>
     </div>
+    <!-- Dropdown for selecting the metronome sound -->
     <div class="dropdown-row">
       <label for="soundSelect" style="font-size:1.1rem;">
         <select id="soundSelect" style="font-size:1rem;">
@@ -195,13 +217,16 @@
         </select>
       </label>
     </div>
+    <!-- Start/Stop button with play/stop icon -->
     <button class="start-stop-btn" id="startStop">
       <span id="startStopIcon">
+        <!-- Play icon SVG -->
         <svg width="28" height="28" viewBox="0 0 28 28" style="vertical-align:middle;">
           <polygon points="7,5 23,14 7,23" fill="#fff" />
         </svg>
       </span>
     </button>
+    <!-- Horizontal swipe bar for BPM adjustment -->
     <div class="swipe-bar" id="swipeBar">
       <span class="swipe-arrow swipe-arrow-left">&#8592;</span>
       <span class="swipe-instruction">Swipe left/right to change BPM</span>
@@ -212,31 +237,41 @@
     </div>
   </div>
   <script>
+    // The current BPM (beats per minute)
     let bpm = 50;
+    // Is the metronome running?
     let isRunning = false;
+    // Stores the interval ID for the metronome
     let intervalId = null;
+    // The audio context for generating sounds
     let audioCtx = null;
+    // The currently selected sound
     let selectedSound = 'high';
 
+    // Get references to UI elements
     const bpmDisplay = document.getElementById('bpm');
     const minusBtn = document.getElementById('minus');
     const plusBtn = document.getElementById('plus');
     const startStopBtn = document.getElementById('startStop');
     const soundSelect = document.getElementById('soundSelect');
 
+    // When the dropdown changes, update the selected sound
     soundSelect.addEventListener('change', (e) => {
       selectedSound = e.target.value;
     });
 
+    // Update the BPM display and the progress bar
     function updateBpmDisplay() {
       bpmDisplay.textContent = bpm;
-      // Update progress bar
+      // Update progress bar (shows BPM as a percent of the range)
       const minBpm = 30, maxBpm = 150;
       const percent = ((bpm - minBpm) / (maxBpm - minBpm)) * 100;
       document.getElementById('swipeProgress').style.width = percent + '%';
     }
 
+    // Play a metronome click based on the selected sound
     function playClick() {
+      // Create the audio context if it doesn't exist
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
@@ -246,8 +281,10 @@
       osc.connect(gain);
       gain.connect(audioCtx.destination);
 
+      // Choose the sound type
       switch (selectedSound) {
         case 'high':
+          // High click: square wave, high pitch
           osc.type = 'square';
           osc.frequency.value = 1500;
           gain.gain.value = 0.5;
@@ -255,6 +292,7 @@
           osc.stop(now + 0.06);
           break;
         case 'low':
+          // Low click: square wave, lower pitch
           osc.type = 'square';
           osc.frequency.value = 800;
           gain.gain.value = 0.5;
@@ -262,6 +300,7 @@
           osc.stop(now + 0.06);
           break;
         case 'beep':
+          // Beep: sine wave
           osc.type = 'sine';
           osc.frequency.value = 1000;
           gain.gain.value = 0.4;
@@ -269,6 +308,7 @@
           osc.stop(now + 0.09);
           break;
         case 'wood':
+          // Woodblock: triangle wave, short
           osc.type = 'triangle';
           osc.frequency.value = 600;
           gain.gain.setValueAtTime(0.7, now);
@@ -277,6 +317,7 @@
           osc.stop(now + 0.05);
           break;
         case 'tick':
+          // Electronic tick: very short, high pitch
           osc.type = 'square';
           osc.frequency.value = 2000;
           gain.gain.setValueAtTime(0.5, now);
@@ -285,6 +326,7 @@
           osc.stop(now + 0.03);
           break;
         case 'tnt':
+          // TNT Boom: sawtooth, pitch drops quickly
           osc.type = 'sawtooth';
           osc.frequency.setValueAtTime(120, now);
           osc.frequency.linearRampToValueAtTime(40, now + 0.18);
@@ -294,6 +336,7 @@
           osc.stop(now + 0.18);
           break;
         case 'snare':
+          // Rock Snare: white noise burst + high click
           let bufferSize = audioCtx.sampleRate * 0.08;
           let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
           let data = buffer.getChannelData(0);
@@ -308,6 +351,7 @@
           noise.connect(snareGain).connect(audioCtx.destination);
           noise.start(now);
           noise.stop(now + 0.08);
+          // Add a quick high-pitch click for snare snap
           osc.type = 'triangle';
           osc.frequency.value = 1800;
           gain.gain.setValueAtTime(0.2, now);
@@ -316,16 +360,18 @@
           osc.stop(now + 0.03);
           break;
         case 'guitar':
+          // Guitar Chord: two triangle waves for a power chord
           osc.type = 'triangle';
-          osc.frequency.setValueAtTime(330, now);
+          osc.frequency.setValueAtTime(330, now); // E4
           gain.gain.setValueAtTime(0.7, now);
           gain.gain.linearRampToValueAtTime(0, now + 0.18);
           osc.start(now);
           osc.stop(now + 0.18);
+          // Add a second oscillator for the fifth
           let osc2 = audioCtx.createOscillator();
           let gain2 = audioCtx.createGain();
           osc2.type = 'triangle';
-          osc2.frequency.setValueAtTime(440, now);
+          osc2.frequency.setValueAtTime(440, now); // A4
           gain2.gain.setValueAtTime(0.5, now);
           gain2.gain.linearRampToValueAtTime(0, now + 0.18);
           osc2.connect(gain2).connect(audioCtx.destination);
@@ -333,6 +379,7 @@
           osc2.stop(now + 0.18);
           break;
         default:
+          // Fallback: high click
           osc.type = 'square';
           osc.frequency.value = 1500;
           gain.gain.value = 0.5;
@@ -341,9 +388,11 @@
       }
     }
 
+    // SVG for play and stop icons
     const startIcon = '<svg width="28" height="28" viewBox="0 0 28 28" style="vertical-align:middle;"><polygon points="7,5 23,14 7,23" fill="#fff" /></svg>';
     const stopIcon = '<svg width="28" height="28" viewBox="0 0 28 28" style="vertical-align:middle;"><rect x="7" y="7" width="14" height="14" fill="#fff" rx="3"/></svg>';
 
+    // Set the play/stop icon on the button
     function setStartStopIcon(running) {
       const iconSpan = document.getElementById('startStopIcon');
       if (running) {
@@ -353,15 +402,18 @@
       }
     }
 
+    // Start the metronome
     function startMetronome() {
       if (isRunning) return;
       isRunning = true;
       setStartStopIcon(true);
       startStopBtn.classList.add('active');
       playClick(); // Play immediately
+      // Set interval for the next beats
       intervalId = setInterval(playClick, 60000 / bpm);
     }
 
+    // Stop the metronome
     function stopMetronome() {
       isRunning = false;
       setStartStopIcon(false);
@@ -372,6 +424,7 @@
       }
     }
 
+    // Decrease BPM when minus is clicked
     minusBtn.addEventListener('click', () => {
       if (bpm > 30) {
         bpm--;
@@ -383,6 +436,7 @@
       }
     });
 
+    // Increase BPM when plus is clicked
     plusBtn.addEventListener('click', () => {
       if (bpm < 150) {
         bpm++;
@@ -394,6 +448,7 @@
       }
     });
 
+    // Start or stop the metronome when the button is clicked
     startStopBtn.addEventListener('click', () => {
       if (isRunning) {
         stopMetronome();
@@ -401,16 +456,17 @@
         startMetronome();
       }
     });
-
     setStartStopIcon(false);
 
+    // Initialize the BPM display and progress bar
     updateBpmDisplay();
 
-    // Horizontal swipe bar logic
+    // Horizontal swipe bar logic for BPM adjustment
     const swipeBar = document.getElementById('swipeBar');
     let swipeActive = false;
     let lastX = null;
 
+    // When user starts touching or clicking the swipe bar
     function handleSwipeStart(e) {
       swipeActive = true;
       if (e.touches && e.touches.length > 0) {
@@ -420,6 +476,7 @@
       }
     }
 
+    // When user moves finger or mouse on the swipe bar
     function handleSwipeMove(e) {
       if (!swipeActive) return;
       let x;
@@ -444,11 +501,13 @@
       }
     }
 
+    // When user lifts finger or mouse leaves the swipe bar
     function handleSwipeEnd(e) {
       swipeActive = false;
       lastX = null;
     }
 
+    // Add event listeners for swipe bar (touch and mouse)
     swipeBar.addEventListener('pointerdown', handleSwipeStart);
     swipeBar.addEventListener('pointermove', handleSwipeMove);
     swipeBar.addEventListener('pointerup', handleSwipeEnd);
