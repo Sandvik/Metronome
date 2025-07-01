@@ -113,40 +113,97 @@
     .bpm-btn, .bpm-display, #soundSelect, .start-stop-btn, label {
       pointer-events: auto;
     }
+    .swipe-bar {
+      margin: 2.5rem auto 0 auto;
+      width: 90vw;
+      max-width: 400px;
+      height: 48px;
+      background: linear-gradient(90deg, #1abc9c 0%, #16a085 100%);
+      border-radius: 24px;
+      color: #fff;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      touch-action: pan-x;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      position: relative;
+      overflow: hidden;
+    }
+    .swipe-arrow {
+      font-size: 1.6rem;
+      opacity: 0.7;
+      margin: 0 0.7rem;
+      z-index: 2;
+      pointer-events: none;
+      user-select: none;
+    }
+    .swipe-instruction {
+      flex: 1;
+      text-align: center;
+      z-index: 2;
+      opacity: 0.85;
+      font-size: 1.05rem;
+      pointer-events: none;
+      user-select: none;
+    }
+    .swipe-progress-bg {
+      position: absolute;
+      left: 0; top: 0; right: 0; bottom: 0;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.08);
+      z-index: 1;
+      overflow: hidden;
+    }
+    .swipe-progress-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      background: rgba(255,255,255,0.35);
+      border-radius: 24px 0 0 24px;
+      width: 0%;
+      transition: width 0.15s cubic-bezier(.4,1.3,.6,1);
+      z-index: 1;
+    }
   </style>
 </head>
 <body>
-  <div class="wheel-outer" id="wheel">
-    <svg class="wheel-arc" width="400" height="400" style="position:absolute;top:0;left:0;pointer-events:none;z-index:1;">
-      <circle cx="200" cy="200" r="160" stroke="#1abc9c" stroke-width="24" fill="none" />
-    </svg>
-    <div class="container">
-      <div class="bpm-controls">
-        <button class="bpm-btn" id="minus">-</button>
-        <span class="bpm-display" id="bpm">50</span>
-        <button class="bpm-btn" id="plus">+</button>
+  <div class="container">
+    <div class="bpm-controls">
+      <button class="bpm-btn" id="minus">-</button>
+      <span class="bpm-display" id="bpm">50</span>
+      <button class="bpm-btn" id="plus">+</button>
+    </div>
+    <div class="dropdown-row">
+      <label for="soundSelect" style="font-size:1.1rem;">
+        <select id="soundSelect" style="font-size:1rem;">
+          <option value="high">High Click</option>
+          <option value="low">Low Click</option>
+          <option value="beep">Beep</option>
+          <option value="wood">Woodblock</option>
+          <option value="tick">Electronic Tick</option>
+          <option value="tnt">TNT Boom</option>
+          <option value="snare">Rock Snare</option>
+          <option value="guitar">Guitar Chord</option>
+        </select>
+      </label>
+    </div>
+    <button class="start-stop-btn" id="startStop">
+      <span id="startStopIcon">
+        <svg width="28" height="28" viewBox="0 0 28 28" style="vertical-align:middle;">
+          <polygon points="7,5 23,14 7,23" fill="#fff" />
+        </svg>
+      </span>
+    </button>
+    <div class="swipe-bar" id="swipeBar">
+      <span class="swipe-arrow swipe-arrow-left">&#8592;</span>
+      <span class="swipe-instruction">Swipe left/right to change BPM</span>
+      <span class="swipe-arrow swipe-arrow-right">&#8594;</span>
+      <div class="swipe-progress-bg">
+        <div class="swipe-progress-fill" id="swipeProgress"></div>
       </div>
-      <div class="dropdown-row">
-        <label for="soundSelect" style="font-size:1.1rem;">Sound:
-          <select id="soundSelect" style="margin-left:0.5rem; font-size:1rem;">
-            <option value="high">High Click</option>
-            <option value="low">Low Click</option>
-            <option value="beep">Beep</option>
-            <option value="wood">Woodblock</option>
-            <option value="tick">Electronic Tick</option>
-            <option value="tnt">TNT Boom</option>
-            <option value="snare">Rock Snare</option>
-            <option value="guitar">Guitar Chord</option>
-          </select>
-        </label>
-      </div>
-      <button class="start-stop-btn" id="startStop">
-        <span id="startStopIcon">
-          <svg width="28" height="28" viewBox="0 0 28 28" style="vertical-align:middle;">
-            <polygon points="7,5 23,14 7,23" fill="#fff" />
-          </svg>
-        </span>
-      </button>
     </div>
   </div>
   <script>
@@ -168,6 +225,10 @@
 
     function updateBpmDisplay() {
       bpmDisplay.textContent = bpm;
+      // Update progress bar
+      const minBpm = 30, maxBpm = 150;
+      const percent = ((bpm - minBpm) / (maxBpm - minBpm)) * 100;
+      document.getElementById('swipeProgress').style.width = percent + '%';
     }
 
     function playClick() {
@@ -318,7 +379,7 @@
     });
 
     plusBtn.addEventListener('click', () => {
-      if (bpm < 300) {
+      if (bpm < 150) {
         bpm++;
         updateBpmDisplay();
         if (isRunning) {
@@ -340,72 +401,32 @@
 
     updateBpmDisplay();
 
-    // Wheel logic
-    const wheel = document.getElementById('wheel');
-    let wheelActive = false;
-    let lastAngle = null;
+    // Horizontal swipe bar logic
+    const swipeBar = document.getElementById('swipeBar');
+    let swipeActive = false;
+    let lastX = null;
 
-    function getAngle(cx, cy, ex, ey) {
-      return Math.atan2(ey - cy, ex - cx) * 180 / Math.PI;
-    }
-
-    // Helper to check if event target is the wheel background (not controls)
-    function isOnWheelBackground(target) {
-      return target === wheel;
-    }
-    // Helper to check if event target is inside .container
-    function isInContainer(target) {
-      return document.querySelector('.container').contains(target);
-    }
-
-    function handleWheelStart(e) {
-      // Only activate wheel if event starts on wheel background
-      let target = e.target;
+    function handleSwipeStart(e) {
+      swipeActive = true;
       if (e.touches && e.touches.length > 0) {
-        target = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-      }
-      if (!isOnWheelBackground(target)) {
-        wheelActive = false;
-        return;
-      }
-      wheelActive = true;
-      const rect = wheel.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      let x, y;
-      if (e.touches) {
-        x = e.touches[0].clientX;
-        y = e.touches[0].clientY;
+        lastX = e.touches[0].clientX;
       } else {
-        x = e.clientX;
-        y = e.clientY;
+        lastX = e.clientX;
       }
-      lastAngle = getAngle(cx, cy, x, y);
-      // Only preventDefault if handling wheel
-      if (e.cancelable) e.preventDefault();
     }
 
-    function handleWheelMove(e) {
-      if (!wheelActive) return;
-      const rect = wheel.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      let x, y;
-      if (e.touches) {
+    function handleSwipeMove(e) {
+      if (!swipeActive) return;
+      let x;
+      if (e.touches && e.touches.length > 0) {
         x = e.touches[0].clientX;
-        y = e.touches[0].clientY;
       } else {
         x = e.clientX;
-        y = e.clientY;
       }
-      const angle = getAngle(cx, cy, x, y);
-      let delta = angle - lastAngle;
-      // Normalize delta to [-180, 180]
-      if (delta > 180) delta -= 360;
-      if (delta < -180) delta += 360;
-      if (Math.abs(delta) > 5) { // Only react to significant movement
+      let delta = x - lastX;
+      if (Math.abs(delta) > 10) { // Only react to significant movement
         if (delta > 0) {
-          if (bpm < 300) bpm++;
+          if (bpm < 150) bpm++;
         } else {
           if (bpm > 30) bpm--;
         }
@@ -414,30 +435,23 @@
           stopMetronome();
           startMetronome();
         }
-        lastAngle = angle;
+        lastX = x;
       }
-      // Only preventDefault if handling wheel
-      if (e.cancelable) e.preventDefault();
     }
 
-    function handleWheelEnd(e) {
-      wheelActive = false;
-      lastAngle = null;
-      // Only preventDefault if handling wheel
-      if (e.cancelable) e.preventDefault();
+    function handleSwipeEnd(e) {
+      swipeActive = false;
+      lastX = null;
     }
 
-    // iOS Safari fix: use both pointer and touch events, always { passive: false }, and only on .wheel-outer
-    // Remove touch events from SVG if any, and ensure all are on wheel div
-    // Remove duplicate listeners if any, and re-add with correct options
-    wheel.addEventListener('pointerdown', handleWheelStart);
-    wheel.addEventListener('pointermove', handleWheelMove);
-    wheel.addEventListener('pointerup', handleWheelEnd);
-    wheel.addEventListener('pointerleave', handleWheelEnd);
-    wheel.addEventListener('touchstart', handleWheelStart, {passive: false});
-    wheel.addEventListener('touchmove', handleWheelMove, {passive: false});
-    wheel.addEventListener('touchend', handleWheelEnd, {passive: false});
-    wheel.addEventListener('touchcancel', handleWheelEnd, {passive: false});
+    swipeBar.addEventListener('pointerdown', handleSwipeStart);
+    swipeBar.addEventListener('pointermove', handleSwipeMove);
+    swipeBar.addEventListener('pointerup', handleSwipeEnd);
+    swipeBar.addEventListener('pointerleave', handleSwipeEnd);
+    swipeBar.addEventListener('touchstart', handleSwipeStart, {passive: true});
+    swipeBar.addEventListener('touchmove', handleSwipeMove, {passive: true});
+    swipeBar.addEventListener('touchend', handleSwipeEnd, {passive: true});
+    swipeBar.addEventListener('touchcancel', handleSwipeEnd, {passive: true});
   </script>
 </body>
 </html> 
