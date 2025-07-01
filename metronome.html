@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metronome</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #222;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #333;
+      padding: 2rem 3rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .bpm-controls {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .bpm-btn {
+      font-size: 2rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      margin: 0 1rem;
+      border: none;
+      border-radius: 50%;
+      background: #444;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .bpm-btn:hover {
+      background: #666;
+    }
+    .bpm-display {
+      font-size: 2.5rem;
+      min-width: 4rem;
+      text-align: center;
+    }
+    .start-stop-btn {
+      font-size: 1.5rem;
+      padding: 0.5rem 2rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: #1abc9c;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .start-stop-btn.active {
+      background: #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="bpm-controls">
+      <button class="bpm-btn" id="minus">-</button>
+      <span class="bpm-display" id="bpm">50</span>
+      <button class="bpm-btn" id="plus">+</button>
+    </div>
+    <label for="soundSelect" style="margin-bottom:1rem; font-size:1.1rem;">Sound:
+      <select id="soundSelect" style="margin-left:0.5rem; font-size:1rem;">
+        <option value="high">High Click</option>
+        <option value="low">Low Click</option>
+        <option value="beep">Beep</option>
+        <option value="wood">Woodblock</option>
+        <option value="tick">Electronic Tick</option>
+      </select>
+    </label>
+    <button class="start-stop-btn" id="startStop">Start</button>
+  </div>
+  <script>
+    let bpm = 100;
+    let isRunning = false;
+    let intervalId = null;
+    let audioCtx = null;
+    let selectedSound = 'high';
+
+    const bpmDisplay = document.getElementById('bpm');
+    const minusBtn = document.getElementById('minus');
+    const plusBtn = document.getElementById('plus');
+    const startStopBtn = document.getElementById('startStop');
+    const soundSelect = document.getElementById('soundSelect');
+
+    soundSelect.addEventListener('change', (e) => {
+      selectedSound = e.target.value;
+    });
+
+    function updateBpmDisplay() {
+      bpmDisplay.textContent = bpm;
+    }
+
+    function playClick() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const now = audioCtx.currentTime;
+      let osc = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      switch (selectedSound) {
+        case 'high':
+          osc.type = 'square';
+          osc.frequency.value = 1500;
+          gain.gain.value = 0.5;
+          osc.start(now);
+          osc.stop(now + 0.06);
+          break;
+        case 'low':
+          osc.type = 'square';
+          osc.frequency.value = 800;
+          gain.gain.value = 0.5;
+          osc.start(now);
+          osc.stop(now + 0.06);
+          break;
+        case 'beep':
+          osc.type = 'sine';
+          osc.frequency.value = 1000;
+          gain.gain.value = 0.4;
+          osc.start(now);
+          osc.stop(now + 0.09);
+          break;
+        case 'wood':
+          // Simulate woodblock: short, percussive, mid freq
+          osc.type = 'triangle';
+          osc.frequency.value = 600;
+          gain.gain.setValueAtTime(0.7, now);
+          gain.gain.linearRampToValueAtTime(0, now + 0.04);
+          osc.start(now);
+          osc.stop(now + 0.05);
+          break;
+        case 'tick':
+          // Electronic tick: very short, high freq
+          osc.type = 'square';
+          osc.frequency.value = 2000;
+          gain.gain.setValueAtTime(0.5, now);
+          gain.gain.linearRampToValueAtTime(0, now + 0.025);
+          osc.start(now);
+          osc.stop(now + 0.03);
+          break;
+        default:
+          osc.type = 'square';
+          osc.frequency.value = 1500;
+          gain.gain.value = 0.5;
+          osc.start(now);
+          osc.stop(now + 0.06);
+      }
+    }
+
+    function startMetronome() {
+      if (isRunning) return;
+      isRunning = true;
+      startStopBtn.textContent = 'Stop';
+      startStopBtn.classList.add('active');
+      playClick(); // Play immediately
+      intervalId = setInterval(playClick, 60000 / bpm);
+    }
+
+    function stopMetronome() {
+      isRunning = false;
+      startStopBtn.textContent = 'Start';
+      startStopBtn.classList.remove('active');
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    }
+
+    minusBtn.addEventListener('click', () => {
+      if (bpm > 30) {
+        bpm--;
+        updateBpmDisplay();
+        if (isRunning) {
+          stopMetronome();
+          startMetronome();
+        }
+      }
+    });
+
+    plusBtn.addEventListener('click', () => {
+      if (bpm < 300) {
+        bpm++;
+        updateBpmDisplay();
+        if (isRunning) {
+          stopMetronome();
+          startMetronome();
+        }
+      }
+    });
+
+    startStopBtn.addEventListener('click', () => {
+      if (isRunning) {
+        stopMetronome();
+      } else {
+        startMetronome();
+      }
+    });
+
+    updateBpmDisplay();
+  </script>
+</body>
+</html> 
