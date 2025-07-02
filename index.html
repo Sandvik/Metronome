@@ -426,7 +426,7 @@
 
     // Decrease BPM when minus is clicked
     minusBtn.addEventListener('click', () => {
-      if (bpm > 30) {
+      if (bpm > 10) {
         bpm--;
         updateBpmDisplay();
         if (isRunning) {
@@ -490,7 +490,7 @@
         if (delta > 0) {
           if (bpm < 150) bpm++;
         } else {
-          if (bpm > 30) bpm--;
+          if (bpm > 10) bpm--;
         }
         updateBpmDisplay();
         if (isRunning) {
