@@ -264,7 +264,7 @@
     function updateBpmDisplay() {
       bpmDisplay.textContent = bpm;
       // Update progress bar (shows BPM as a percent of the range)
-      const minBpm = 30, maxBpm = 150;
+      const minBpm = 10, maxBpm = 150;
       const percent = ((bpm - minBpm) / (maxBpm - minBpm)) * 100;
       document.getElementById('swipeProgress').style.width = percent + '%';
     }
